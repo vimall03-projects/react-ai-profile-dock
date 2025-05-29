@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Toggle } from "@/components/ui/toggle";
 import { Send, Loader2, X, MessageCircle, Trash2 } from "lucide-react";
 import { ChatMessage } from "../types/Resource";
 import { BASE_URL, API_HEADERS } from "../constants/api";
@@ -17,6 +18,7 @@ const ChatDock: React.FC<ChatDockProps> = ({ contextId }) => {
   const [currentQuery, setCurrentQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isMessagesVisible, setIsMessagesVisible] = useState(false);
+  const [impersonateMode, setImpersonateMode] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -55,9 +57,15 @@ const ChatDock: React.FC<ChatDockProps> = ({ contextId }) => {
     setMessages(prev => [...prev, userMessage]);
 
     try {
-      const url = contextId === "home" 
+      let url = contextId === "home" 
         ? `${BASE_URL}/resource_query`
         : `${BASE_URL}/resource_query?resource_id=${contextId}`;
+      
+      // Add impersonate parameter if enabled
+      if (impersonateMode) {
+        const separator = url.includes('?') ? '&' : '?';
+        url += `${separator}Impersonate=true`;
+      }
 
       const response = await fetch(url, {
         method: "POST",
@@ -209,6 +217,18 @@ const ChatDock: React.FC<ChatDockProps> = ({ contextId }) => {
                 disabled={isLoading}
                 className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base placeholder:text-gray-500 font-medium"
               />
+              
+              {/* Impersonate Toggle */}
+              <div className="flex items-center gap-2 mt-2">
+                <Toggle
+                  pressed={impersonateMode}
+                  onPressedChange={setImpersonateMode}
+                  size="sm"
+                  className="bg-gray-100 hover:bg-gray-200 data-[state=on]:bg-blue-100 data-[state=on]:text-blue-700 text-gray-600 border border-gray-300 rounded-full px-3 py-1 text-xs font-medium transition-all"
+                >
+                  Impersonate
+                </Toggle>
+              </div>
             </div>
             
             <Button 
