@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Loader2, X } from "lucide-react";
+import { Send, Loader2, X, MessageCircle, Trash2 } from "lucide-react";
 import { ChatMessage } from "../types/Resource";
 import { BASE_URL, API_HEADERS } from "../constants/api";
 import { toast } from "@/hooks/use-toast";
@@ -16,6 +16,7 @@ const ChatDock: React.FC<ChatDockProps> = ({ contextId }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentQuery, setCurrentQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isMessagesVisible, setIsMessagesVisible] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -23,6 +24,18 @@ const ChatDock: React.FC<ChatDockProps> = ({ contextId }) => {
       inputRef.current.focus();
     }
   }, []);
+
+  // Show messages when a new message is added
+  useEffect(() => {
+    if (messages.length > 0) {
+      setIsMessagesVisible(true);
+    }
+  }, [messages.length]);
+
+  // Close chat when contextId changes (navigating to different pages)
+  useEffect(() => {
+    setIsMessagesVisible(false);
+  }, [contextId]);
 
   const sendQuery = async () => {
     if (!currentQuery.trim() || isLoading) return;
@@ -94,28 +107,63 @@ const ChatDock: React.FC<ChatDockProps> = ({ contextId }) => {
     }
   };
 
+  const hideMessages = () => {
+    setIsMessagesVisible(false);
+  };
+
+  const showMessages = () => {
+    setIsMessagesVisible(true);
+  };
+
   const clearMessages = () => {
     setMessages([]);
+    setIsMessagesVisible(false);
   };
+
+  const hasMessages = messages.length > 0;
+  const showMessagesArea = hasMessages && isMessagesVisible;
 
   return (
     <>
-      {/* Background Blur Overlay - only visible when messages exist */}
-      {messages.length > 0 && (
+      {/* Background Blur Overlay - only visible when messages are shown */}
+      {showMessagesArea && (
         <div className="fixed inset-0 backdrop-blur-sm bg-black/10 pointer-events-none z-30" />
       )}
 
+      {/* Show Messages Button - only when messages exist but are hidden */}
+      {hasMessages && !isMessagesVisible && (
+        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-40">
+          <Button
+            onClick={showMessages}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg rounded-full px-4 py-2 flex items-center gap-2"
+          >
+            <MessageCircle className="w-4 h-4" />
+            Show Chat ({messages.length})
+          </Button>
+        </div>
+      )}
+
       {/* Floating Messages */}
-      {messages.length > 0 && (
+      {showMessagesArea && (
         <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 w-[min(700px,92vw)] max-h-[65vh] overflow-y-auto z-40 pointer-events-none">
           <div className="space-y-4 p-6">
-            {/* Close Button */}
-            <div className="flex justify-end pointer-events-auto">
+            {/* Control Buttons */}
+            <div className="flex justify-end gap-2 pointer-events-auto">
               <Button
                 onClick={clearMessages}
                 variant="ghost"
                 size="icon"
+                className="bg-white/90 backdrop-blur-md hover:bg-red-50/95 shadow-lg border border-white/30 rounded-full h-8 w-8 text-red-600 hover:text-red-800"
+                title="Clear chat history"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+              <Button
+                onClick={hideMessages}
+                variant="ghost"
+                size="icon"
                 className="bg-white/90 backdrop-blur-md hover:bg-white/95 shadow-lg border border-white/30 rounded-full h-8 w-8 text-gray-600 hover:text-gray-800"
+                title="Hide chat"
               >
                 <X className="w-4 h-4" />
               </Button>
