@@ -1,10 +1,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, Minimize2, Maximize2, Loader2 } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
 import { ChatMessage } from "../types/Resource";
 import { BASE_URL, API_HEADERS } from "../constants/api";
 import { toast } from "@/hooks/use-toast";
@@ -15,29 +13,16 @@ interface ChatDockProps {
 }
 
 const ChatDock: React.FC<ChatDockProps> = ({ contextId }) => {
-  const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentQuery, setCurrentQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Focus input when chat opens
-    if (isOpen && inputRef.current) {
+    if (inputRef.current) {
       inputRef.current.focus();
     }
-  }, [isOpen]);
-
-  useEffect(() => {
-    // Scroll to bottom when new messages are added
-    if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
-    }
-  }, [messages]);
+  }, []);
 
   const sendQuery = async () => {
     if (!currentQuery.trim() || isLoading) return;
@@ -46,7 +31,6 @@ const ChatDock: React.FC<ChatDockProps> = ({ contextId }) => {
     setCurrentQuery("");
     setIsLoading(true);
 
-    // Add user message immediately
     const userMessageId = Date.now().toString();
     const userMessage: ChatMessage = {
       id: userMessageId,
@@ -74,7 +58,6 @@ const ChatDock: React.FC<ChatDockProps> = ({ contextId }) => {
 
       const responseText = await response.text();
 
-      // Update the message with the response
       setMessages(prev => 
         prev.map(msg => 
           msg.id === userMessageId 
@@ -86,7 +69,6 @@ const ChatDock: React.FC<ChatDockProps> = ({ contextId }) => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Query failed";
       
-      // Update message with error
       setMessages(prev => 
         prev.map(msg => 
           msg.id === userMessageId 
@@ -112,103 +94,86 @@ const ChatDock: React.FC<ChatDockProps> = ({ contextId }) => {
     }
   };
 
-  return (
-    <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 w-[min(600px,90vw)] z-50">
-      <Card className={`transition-all duration-300 shadow-2xl border-0 bg-white/95 backdrop-blur-md ${
-        isOpen ? "translate-y-0 opacity-100" : "translate-y-2 opacity-100"
-      }`}>
-        {/* Header */}
-        <CardHeader 
-          className="pb-3 cursor-pointer flex flex-row items-center justify-between bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-lg"
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          <div className="flex items-center">
-            <MessageCircle className="w-5 h-5 mr-2" />
-            <CardTitle className="text-lg">
-              AI Assistant {contextId !== "home" && `• User Context`}
-            </CardTitle>
-          </div>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="text-white hover:bg-white/20 p-1"
-          >
-            {isOpen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          </Button>
-        </CardHeader>
+  const clearMessages = () => {
+    setMessages([]);
+  };
 
-        {/* Chat Area */}
-        {isOpen && (
-          <CardContent className="p-0">
-            <div className="flex flex-col h-96">
-              {/* Messages */}
-              <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
-                {messages.length === 0 ? (
-                  <div className="text-center text-gray-500 py-8">
-                    <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                    <p className="text-sm">
-                      {contextId === "home" 
-                        ? "Ask me about resources and team members..."
-                        : "Ask me about this team member..."
-                      }
-                    </p>
+  return (
+    <>
+      {/* Floating Messages */}
+      {messages.length > 0 && (
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 w-[min(600px,90vw)] max-h-[60vh] overflow-y-auto z-40 pointer-events-none">
+          <div className="space-y-3 p-4">
+            {messages.map((message) => (
+              <div key={message.id} className="space-y-2 animate-fade-in">
+                {/* User Query */}
+                <div className="flex justify-end pointer-events-auto">
+                  <div className="bg-blue-500/90 backdrop-blur-md text-white p-3 rounded-2xl max-w-[80%] break-words shadow-lg border border-white/20">
+                    {message.query}
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {messages.map((message) => (
-                      <div key={message.id} className="space-y-2">
-                        {/* User Query */}
-                        <div className="flex justify-end">
-                          <div className="bg-blue-500 text-white p-3 rounded-lg max-w-[80%] break-words">
-                            {message.query}
-                          </div>
-                        </div>
-                        
-                        {/* Assistant Response */}
-                        {message.response && (
-                          <div className="flex justify-start">
-                            <div className="bg-gray-100 p-3 rounded-lg max-w-[80%]">
-                              <MarkdownView md={message.response} />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                </div>
+                
+                {/* Assistant Response */}
+                {message.response && (
+                  <div className="flex justify-start pointer-events-auto">
+                    <div className="bg-white/90 backdrop-blur-md p-3 rounded-2xl max-w-[80%] shadow-lg border border-white/20">
+                      <MarkdownView md={message.response} />
+                    </div>
                   </div>
                 )}
-              </ScrollArea>
-
-              {/* Input Area */}
-              <div className="border-t bg-gray-50 p-4">
-                <div className="flex gap-2">
-                  <Input
-                    ref={inputRef}
-                    value={currentQuery}
-                    onChange={(e) => setCurrentQuery(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Ask a question..."
-                    disabled={isLoading}
-                    className="flex-1"
-                  />
-                  <Button 
-                    onClick={sendQuery}
-                    disabled={!currentQuery.trim() || isLoading}
-                    size="icon"
-                    className="bg-blue-500 hover:bg-blue-600"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
               </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Input Area */}
+      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 w-[min(600px,90vw)] z-50">
+        <div className="bg-white/95 backdrop-blur-md shadow-2xl border border-white/20 rounded-2xl p-4">
+          <div className="flex gap-3 items-end">
+            <div className="flex-1">
+              <Input
+                ref={inputRef}
+                value={currentQuery}
+                onChange={(e) => setCurrentQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={contextId === "home" 
+                  ? "Ask me about resources and team members..."
+                  : "Ask me about this team member..."
+                }
+                disabled={isLoading}
+                className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base"
+              />
             </div>
-          </CardContent>
-        )}
-      </Card>
-    </div>
+            
+            <div className="flex gap-2">
+              {messages.length > 0 && (
+                <Button 
+                  onClick={clearMessages}
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  Clear
+                </Button>
+              )}
+              <Button 
+                onClick={sendQuery}
+                disabled={!currentQuery.trim() || isLoading}
+                size="icon"
+                className="bg-blue-500 hover:bg-blue-600 rounded-xl"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 };
 
