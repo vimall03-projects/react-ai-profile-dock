@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, X } from "lucide-react";
 import { ChatMessage } from "../types/Resource";
 import { BASE_URL, API_HEADERS } from "../constants/api";
 import { toast } from "@/hooks/use-toast";
@@ -100,23 +100,40 @@ const ChatDock: React.FC<ChatDockProps> = ({ contextId }) => {
 
   return (
     <>
+      {/* Background Blur Overlay - only visible when messages exist */}
+      {messages.length > 0 && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/10 pointer-events-none z-30" />
+      )}
+
       {/* Floating Messages */}
       {messages.length > 0 && (
-        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 w-[min(600px,90vw)] max-h-[60vh] overflow-y-auto z-40 pointer-events-none">
-          <div className="space-y-3 p-4">
+        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 w-[min(700px,92vw)] max-h-[65vh] overflow-y-auto z-40 pointer-events-none">
+          <div className="space-y-4 p-6">
+            {/* Close Button */}
+            <div className="flex justify-end pointer-events-auto">
+              <Button
+                onClick={clearMessages}
+                variant="ghost"
+                size="icon"
+                className="bg-white/90 backdrop-blur-md hover:bg-white/95 shadow-lg border border-white/30 rounded-full h-8 w-8 text-gray-600 hover:text-gray-800"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            
             {messages.map((message) => (
-              <div key={message.id} className="space-y-2 animate-fade-in">
+              <div key={message.id} className="space-y-3 animate-fade-in">
                 {/* User Query */}
                 <div className="flex justify-end pointer-events-auto">
-                  <div className="bg-blue-500/90 backdrop-blur-md text-white p-3 rounded-2xl max-w-[80%] break-words shadow-lg border border-white/20">
-                    {message.query}
+                  <div className="bg-gradient-to-r from-blue-600 to-blue-700 backdrop-blur-md text-white p-4 rounded-2xl max-w-[85%] break-words shadow-xl border border-blue-500/20">
+                    <div className="text-sm font-medium">{message.query}</div>
                   </div>
                 </div>
                 
                 {/* Assistant Response */}
                 {message.response && (
                   <div className="flex justify-start pointer-events-auto">
-                    <div className="bg-white/90 backdrop-blur-md p-3 rounded-2xl max-w-[80%] shadow-lg border border-white/20">
+                    <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl max-w-[85%] shadow-xl border border-gray-200/50">
                       <MarkdownView md={message.response} />
                     </div>
                   </div>
@@ -128,8 +145,8 @@ const ChatDock: React.FC<ChatDockProps> = ({ contextId }) => {
       )}
 
       {/* Input Area */}
-      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 w-[min(600px,90vw)] z-50">
-        <div className="bg-white/95 backdrop-blur-md shadow-2xl border border-white/20 rounded-2xl p-4">
+      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[min(700px,92vw)] z-50">
+        <div className="bg-white/95 backdrop-blur-lg shadow-2xl border border-gray-200/30 rounded-3xl p-5">
           <div className="flex gap-3 items-end">
             <div className="flex-1">
               <Input
@@ -142,34 +159,22 @@ const ChatDock: React.FC<ChatDockProps> = ({ contextId }) => {
                   : "Ask me about this team member..."
                 }
                 disabled={isLoading}
-                className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base"
+                className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-base placeholder:text-gray-500 font-medium"
               />
             </div>
             
-            <div className="flex gap-2">
-              {messages.length > 0 && (
-                <Button 
-                  onClick={clearMessages}
-                  variant="ghost"
-                  size="sm"
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  Clear
-                </Button>
+            <Button 
+              onClick={sendQuery}
+              disabled={!currentQuery.trim() || isLoading}
+              size="icon"
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-2xl shadow-lg transition-all duration-200 hover:scale-105 h-11 w-11"
+            >
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Send className="w-5 h-5" />
               )}
-              <Button 
-                onClick={sendQuery}
-                disabled={!currentQuery.trim() || isLoading}
-                size="icon"
-                className="bg-blue-500 hover:bg-blue-600 rounded-xl"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
+            </Button>
           </div>
         </div>
       </div>
